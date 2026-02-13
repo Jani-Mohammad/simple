@@ -1,0 +1,40 @@
+name: Simple NGINX Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+jobs:
+  test-nginx:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if index.html exists
+        run: |
+          if [ ! -f "index.html" ]; then
+            echo "❌ index.html not found!"
+            exit 1
+          fi
+          echo "✅ index.html exists."
+
+      - name: Start NGINX container
+        run: |
+          docker run -d --rm --name nginx-test \
+            -p 8080:80 \
+            -v "$PWD/index.html":/usr/share/nginx/html/index.html:ro \
+            nginx:alpine
+          sleep 2
+
+      - name: Verify NGINX is running
+        run: |
+          curl -s http://localhost:8080 > /dev/null
+
+      - name: Stop container
+        if: always()
+        run: docker stop nginx-test
